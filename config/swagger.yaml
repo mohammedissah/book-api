@@ -1,0 +1,503 @@
+openapi: 3.0.0
+info:
+  title: Books API
+  version: 1.0.0
+  description: A comprehensive API for managing a book collection.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+tags:
+  - name: Books
+    description: Operations related to books
+
+paths:
+  /books:
+    get:
+      tags:
+        - Books
+      summary: Get all books
+      description: Retrieve a list of all books with optional pagination, searching, filtering, and sorting.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of books per page.
+        - in: query
+          name: sort
+          schema:
+            type: string
+            examples:
+                default:
+                    value: -createdAt
+                    summary: Sort by creation date (descending)
+                titleAsc:
+                    value: title
+                    summary: Sort by title (ascending)
+                pubDateDesc:
+                    value: -publicationDate
+                    summary: Sort by publication date (descending)
+          description: Sort order. Use comma-separated fields (e.g., `title,-author`). Prepend `-` for descending.
+        - in: query
+          name: fields
+          schema:
+            type: string
+            examples:
+                default:
+                    value: title,author
+                    summary: Only return title and author
+          description: Comma-separated list of fields to include (e.g., `title,author`).
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by title, author, or genre (case-insensitive, partial matching).
+        - in: query
+          name: genre
+          schema:
+            type: string
+          description: Filter books by genre (e.g., `Fiction`).
+        - in: query
+          name: publicationDate[gte]
+          schema:
+            type: string
+            format: date
+          description: Filter books published on or after a specific date (e.g., `2020-01-01`).
+        - in: query
+          name: publicationDate[lte]
+          schema:
+            type: string
+            format: date
+          description: Filter books published on or before a specific date (e.g., `2023-12-31`).
+        - in: query
+          name: pages[gt]
+          schema:
+            type: integer
+          description: Filter books with more than a specific number of pages.
+      responses:
+        200:
+          description: A list of books.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    example: 5
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Book'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      tags:
+        - Books
+      summary: Add a new book
+      description: Create a new book entry in the collection.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                author:
+                  type: string
+                isbn:
+                  type: string
+                publicationDate:
+                  type: string
+                  format: date
+                genre:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+                publisher:
+                  type: string
+                pages:
+                  type: integer
+                language:
+                  type: string
+                coverImage:
+                  type: string
+                  format: binary
+            encoding:
+              coverImage:
+                contentType: image/jpeg, image/png, image/gif
+      responses:
+        201:
+          description: Book successfully created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Book'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /books/{id}:
+    get:
+      tags:
+        - Books
+      summary: Get details of a specific book
+      description: Retrieve detailed information about a single book by its ID.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid # Or use `ObjectId` if you're using MongoDB ObjectId format
+          required: true
+          description: ID of the book to retrieve.
+      responses:
+        200:
+          description: Book details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Book'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+    put:
+      tags:
+        - Books
+      summary: Update a book
+      description: Update an existing book's information by its ID.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: ID of the book to update.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookUpdateInput'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                author:
+                  type: string
+                isbn:
+                  type: string
+                publicationDate:
+                  type: string
+                  format: date
+                genre:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+                publisher:
+                  type: string
+                pages:
+                  type: integer
+                language:
+                  type: string
+                coverImage:
+                  type: string
+                  format: binary
+            encoding:
+              coverImage:
+                contentType: image/jpeg, image/png, image/gif
+      responses:
+        200:
+          description: Book successfully updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Book'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      tags:
+        - Books
+      summary: Remove a book
+      description: Delete a book from the collection by its ID.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: ID of the book to delete.
+      responses:
+        200:
+          description: Book successfully deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object # Empty object indicates successful deletion
+                    example: {}
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    Book:
+      type: object
+      required:
+        - title
+        - author
+        - isbn
+        - publicationDate
+        - genre
+      properties:
+        _id:
+          type: string
+          description: The auto-generated ID of the book.
+          example: 60d0fe4f5311236168a109c1
+        title:
+          type: string
+          description: The title of the book.
+          example: The Hitchhiker's Guide to the Galaxy
+        author:
+          type: string
+          description: The author of the book.
+          example: Douglas Adams
+        isbn:
+          type: string
+          description: The ISBN of the book.
+          example: 978-0345391803
+        publicationDate:
+          type: string
+          format: date
+          description: The publication date of the book (YYYY-MM-DD).
+          example: 1979-10-12
+        genre:
+          type: array
+          items:
+            type: string
+          description: An array of genres for the book.
+          example: ["Science Fiction", "Comedy"]
+        coverImage:
+          type: string
+          format: uri
+          description: URL to the book's cover image.
+          example: http://localhost:3000/uploads/coverImage-16789012345.jpg
+        description:
+          type: string
+          description: A brief description of the book.
+          example: A comedic science fiction series.
+        publisher:
+          type: string
+          description: The publisher of the book.
+          example: Pan Books
+        pages:
+          type: integer
+          description: The number of pages in the book.
+          example: 193
+        language:
+          type: string
+          description: The language of the book.
+          example: English
+        createdAt:
+          type: string
+          format: date-time
+          description: The timestamp when the book was added.
+          example: 2023-05-18T10:30:00.000Z
+
+    BookInput: # For POST requests (all required)
+      type: object
+      required:
+        - title
+        - author
+        - isbn
+        - publicationDate
+        - genre
+      properties:
+        title:
+          type: string
+          description: The title of the book.
+          example: The Lord of the Rings
+        author:
+          type: string
+          description: The author of the book.
+          example: J.R.R. Tolkien
+        isbn:
+          type: string
+          description: The ISBN of the book.
+          example: 978-0618053267
+        publicationDate:
+          type: string
+          format: date
+          description: The publication date of the book (YYYY-MM-DD).
+          example: 1954-07-29
+        genre:
+          type: array
+          items:
+            type: string
+          description: An array of genres for the book.
+          example: ["Fantasy", "Adventure"]
+        description:
+          type: string
+          description: A brief description of the book.
+          example: A fantasy epic.
+        publisher:
+          type: string
+          description: The publisher of the book.
+          example: George Allen & Unwin
+        pages:
+          type: integer
+          description: The number of pages in the book.
+          example: 1178
+        language:
+          type: string
+          description: The language of the book.
+          example: English
+        # coverImage field will be handled by multipart/form-data directly, not in JSON body schema
+
+    BookUpdateInput: # For PUT requests (all optional)
+      type: object
+      properties:
+        title:
+          type: string
+          description: The title of the book.
+          example: The Two Towers
+        author:
+          type: string
+          description: The author of the book.
+          example: J.R.R. Tolkien
+        isbn:
+          type: string
+          description: The ISBN of the book.
+          example: 978-0345339713
+        publicationDate:
+          type: string
+          format: date
+          description: The publication date of the book (YYYY-MM-DD).
+          example: 1954-11-11
+        genre:
+          type: array
+          items:
+            type: string
+          description: An array of genres for the book.
+          example: ["Fantasy"]
+        description:
+          type: string
+          description: A brief description of the book.
+          example: Second volume of The Lord of the Rings.
+        publisher:
+          type: string
+          description: The publisher of the book.
+          example: George Allen & Unwin
+        pages:
+          type: integer
+          description: The number of pages in the book.
+          example: 448
+        language:
+          type: string
+          description: The language of the book.
+          example: English
+        # coverImage field will be handled by multipart/form-data directly, not in JSON body schema
+
+
+  responses:
+    BadRequest:
+      description: Bad Request - Invalid input or validation error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Validation Error
+              errors:
+                type: array
+                items:
+                  type: string
+                  example: "title is required"
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Book not found
+    ServerError:
+      description: Internal Server Error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Server Error
