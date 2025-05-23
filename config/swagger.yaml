@@ -4,6 +4,8 @@ info:
   version: 1.0.0
   description: A comprehensive API for managing a book collection.
 servers:
+  - url: https://book-api-fibh.onrender.com/api/v1 
+    description: Production server on Render
   - url: http://localhost:3000/api/v1
     description: Local development server
 tags:
